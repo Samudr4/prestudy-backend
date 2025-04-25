@@ -58,6 +58,17 @@ app.use('/api/category', categoryRoutes);
 app.get("/", (req, res) => {
   res.send("Pre-Study App Backend is Running!");
 });
+
+// API root endpoint for health check
+app.get("/api", (req, res) => {
+  res.json({ 
+    success: true, 
+    message: "API is running",
+    version: "1.0.0",
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
 // List all registered endpoints for debugging
 const listEndpoints = require('express-list-endpoints');
 console.log('Registered Endpoints:', listEndpoints(app));

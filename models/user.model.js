@@ -8,7 +8,11 @@ const userSchema = new mongoose.Schema(
       required: true,
       unique: true
     },
-    name: {
+    firstName: {
+      type: String,
+      default: ''
+    },
+    lastName: {
       type: String,
       default: ''
     },
@@ -16,7 +20,14 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: ''
     },
-    // Additional fields as needed
+    gender: {
+      type: String,
+      default: ''
+    },
+    dateOfBirth: {
+      type: String,
+      default: ''
+    }
   },
   { timestamps: true }
 );

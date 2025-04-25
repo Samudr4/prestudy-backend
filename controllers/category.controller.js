@@ -4,31 +4,25 @@ const Category = require('../models/category.model');
 // Create a new category
 exports.createCategory = async (req, res) => {
   try {
-    const { name, type, parentCategory, description, image, order } = req.body;
-    
-    // Calculate level based on parent
-    let level = 0;
-    if (parentCategory) {
-      const parent = await Category.findById(parentCategory);
-      if (parent) {
-        level = parent.level + 1;
-      }
+    const { name, type, description, image, order } = req.body;
+
+    if (!name || !type) {
+      return res.status(400).json({ success: false, message: "Name and type are required." });
     }
 
-    const category = await Category.create({ 
-      name, 
-      type, 
-      parentCategory, 
-      description, 
+    const category = await Category.create({
+      name,
+      type,
+      description,
       image,
-      level,
-      order: order || 0
+      order: order || 0,
+      isActive: true,
     });
-    
+
     res.status(201).json({ success: true, data: category });
   } catch (error) {
-    console.error('Error creating category:', error);
-    res.status(500).json({ success: false, error: 'Server Error' });
+    console.error("Error creating category:", error);
+    res.status(500).json({ success: false, error: "Server Error" });
   }
 };
 
@@ -59,19 +53,13 @@ exports.getCategoriesByType = async (req, res) => {
 // Get categories by type and level
 exports.getCategoriesByTypeAndLevel = async (req, res) => {
   try {
-    const { type, level, parentCategory } = req.query;
-    const query = {};
-    
-    if (type) query.type = type;
-    if (level) query.level = parseInt(level);
-    if (parentCategory) {
-      query.parentCategory = parentCategory === 'null' ? null : parentCategory;
+    const { type } = req.query; // e.g., type=course or type=exam
+    if (!type) {
+      return res.status(400).json({ success: false, message: "Type is required" });
     }
 
-    const categories = await Category.find(query)
-      .sort({ order: 1, name: 1 })
-      .populate('parentCategory', 'name type');
-      
+    const query = { type, isActive: true }; // Fetch only active categories
+    const categories = await Category.find(query).sort({ order: 1 }); // Sort by order
     res.json({ success: true, data: categories });
   } catch (error) {
     console.error("Error fetching categories:", error);
@@ -82,37 +70,23 @@ exports.getCategoriesByTypeAndLevel = async (req, res) => {
 // Get complete category tree
 exports.getCategoryTree = async (req, res) => {
   try {
-    // First get all root categories (level 0)
-    const rootCategories = await Category.find({ level: 0 })
-      .sort({ order: 1, name: 1 });
+    const rootCategories = await Category.find({ parentCategory: null, isActive: true }).sort({ order: 1 });
 
-    // Function to recursively get children
     const getChildren = async (parentId) => {
-      const children = await Category.find({ parentCategory: parentId })
-        .sort({ order: 1, name: 1 });
-      
-      const childrenWithSubcategories = await Promise.all(
-        children.map(async (child) => {
-          const subcategories = await getChildren(child._id);
-          return {
-            ...child.toObject(),
-            subcategories
-          };
-        })
+      const children = await Category.find({ parentCategory: parentId, isActive: true }).sort({ order: 1 });
+      return Promise.all(
+        children.map(async (child) => ({
+          ...child.toObject(),
+          subcategories: await getChildren(child._id),
+        }))
       );
-      
-      return childrenWithSubcategories;
     };
 
-    // Build complete tree
     const categoryTree = await Promise.all(
-      rootCategories.map(async (root) => {
-        const subcategories = await getChildren(root._id);
-        return {
-          ...root.toObject(),
-          subcategories
-        };
-      })
+      rootCategories.map(async (root) => ({
+        ...root.toObject(),
+        subcategories: await getChildren(root._id),
+      }))
     );
 
     res.json({ success: true, data: categoryTree });
@@ -135,7 +109,7 @@ exports.updateCategory = async (req, res) => {
     }
 
     const updatedCategory = await Category.findByIdAndUpdate(
-      categoryId, 
+      categoryId,
       req.body,
       { new: true }
     );
