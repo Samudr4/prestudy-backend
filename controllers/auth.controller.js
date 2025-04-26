@@ -54,14 +54,48 @@ const requestOTP = async (req, res) => {
 
 const verifyOTP = async (req, res) => {
   try {
-    const { idToken, phoneNumber } = req.body;
+    const { idToken, phoneNumber, otp } = req.body;
 
+    // In development mode, accept any OTP and phoneNumber
+    if (isDevelopment) {
+      console.log(`DEVELOPMENT MODE: Verifying OTP for ${phoneNumber}`);
+      
+      if (!phoneNumber) {
+        return res.status(400).json({ success: false, message: 'Phone number is required' });
+      }
+      
+      // Normalize phone number format
+      const normalizedPhone = phoneNumber.startsWith("+") ? phoneNumber : `+91${phoneNumber}`;
+      
+      // Find or create user
+      let user = await User.findOne({ phoneNumber: normalizedPhone });
+      
+      if (!user) {
+        user = await User.create({ 
+          phoneNumber: normalizedPhone,
+          firstName: "",
+          lastName: ""
+        });
+        console.log(`Created new user with phone ${normalizedPhone}`);
+      }
+
+      // Generate a simple token
+      const token = `dev-token-${Date.now()}`;
+
+      return res.status(200).json({
+        success: true,
+        message: 'DEV MODE: OTP verification bypassed',
+        user,
+        token
+      });
+    }
+
+    // Production mode - require idToken
     if (!idToken) {
       return res.status(400).json({ success: false, message: 'ID Token is required' });
     }
 
     // In a real implementation, you would verify with Firebase
-    // For demo, we'll accept the token and create/find the user
     let user;
     let decodedPhoneNumber;
     
@@ -70,13 +104,8 @@ const verifyOTP = async (req, res) => {
       const decodedToken = await verifyFirebaseToken(idToken);
       decodedPhoneNumber = decodedToken.phone_number;
     } catch (firebaseError) {
-      // If Firebase verification fails in development, use provided phone number
-      if (isDevelopment && phoneNumber) {
-        decodedPhoneNumber = phoneNumber.startsWith("+") ? phoneNumber : `+91${phoneNumber}`;
-        console.log(`DEVELOPMENT MODE: Using provided phone number ${decodedPhoneNumber}`);
-      } else {
-        return res.status(401).json({ success: false, message: 'Invalid token or missing phone number' });
-      }
+      // If Firebase verification fails in production, return error
+      return res.status(401).json({ success: false, message: 'Invalid token' });
     }
 
     // Find or create user
@@ -88,8 +117,7 @@ const verifyOTP = async (req, res) => {
     }
 
     // Generate a JWT token for subsequent authenticated requests
-    // In a real app, you would sign with a proper secret
-    const token = isDevelopment ? `dev-token-${Date.now()}` : idToken;
+    const token = idToken;
 
     return res.status(200).json({
       success: true,

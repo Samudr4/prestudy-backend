@@ -20,7 +20,10 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "create-test-user": "node createTestUser.js"
+    "create-test-user": "node createTestUser.js",
+    "setup": "node createEnvFile.js && npm run dev",
+    "clean-db": "node cleanDatabase.js",
+    "reset-to-production": "node createEnvFile.js && node cleanDatabase.js && npm run dev"
   },
   "keywords": [],
   "author": "",

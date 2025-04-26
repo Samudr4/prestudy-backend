@@ -3,9 +3,13 @@ const express = require('express');
 const router = express.Router();
 const leaderboardController = require('../controllers/leaderboard.controller');
 
-router.post('/', leaderboardController.createLeaderboard);
+// Get leaderboard data
 router.get('/', leaderboardController.getLeaderboard);
-router.put('/:leaderboardId', leaderboardController.updateScore);
-router.delete('/:leaderboardId', leaderboardController.deleteLeaderboard);
+
+// Get a specific user's rank and score
+router.get('/user/:userId', leaderboardController.getUserRank);
+
+// Update a user's score (after completing a quiz)
+router.post('/user/:userId/score', leaderboardController.updateUserScore);
 
 module.exports = router;

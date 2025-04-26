@@ -35,11 +35,13 @@ requiredEnvVars.forEach((varName) => {
 });
 
 // Middleware
+// Updated CORS to allow connections from mobile devices and emulators
 app.use(
     cors({
-        origin: "http://localhost:8081", // Replace with your frontend's Expo development URL
-        methods: ["GET", "POST", "PUT", "DELETE"],
+        origin: '*', // Allow all origins in development
+        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         credentials: true,
+        allowedHeaders: ['Content-Type', 'Authorization']
     })
 );
 app.use(morgan('dev'));
@@ -79,8 +81,9 @@ connectDB()
     console.log("✅ Database Connected");
     const PORT = process.env.PORT || 3000;
     // Start the server
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`Access the API at http://localhost:${PORT}`);
     });
   })
   .catch((err) => {
